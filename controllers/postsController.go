@@ -4,6 +4,7 @@ import (
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/initializers"
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/models"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"net/http"
 )
 
@@ -31,6 +32,28 @@ func PostsCreate(c *gin.Context) {
 
 func GetPosts(c *gin.Context) {
 	var posts []models.Post
+
 	initializers.DB.Find(&posts)
+
 	c.IndentedJSON(http.StatusOK, posts)
+}
+
+func GetPostByID(c *gin.Context) {
+	id := c.Param("id")
+	var post models.Post
+
+	result := initializers.DB.First(&post, id)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.IndentedJSON(http.StatusNotFound, gin.H{ "error": "Post not found"})
+			return
+		}
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{
+            "error": "Server error",
+        })
+        return
+	}
+
+	c.IndentedJSON(http.StatusOK, post)
 }
