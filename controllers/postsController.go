@@ -42,18 +42,49 @@ func GetPostByID(c *gin.Context) {
 	id := c.Param("id")
 	var post models.Post
 
-	result := initializers.DB.First(&post, id)
-
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			c.IndentedJSON(http.StatusNotFound, gin.H{ "error": "Post not found"})
-			return
-		}
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{
-            "error": "Server error",
-        })
+    if err := initializers.DB.First(&post, id).Error; err != nil {
+        if err == gorm.ErrRecordNotFound {
+            c.IndentedJSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+            return
+        }
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post"})
         return
-	}
+    }
 
 	c.IndentedJSON(http.StatusOK, post)
+}
+
+func PostUpdates(c *gin.Context) {
+	id := c.Param("id")
+	var updateData models.Post
+
+	if err := c.BindJSON(&updateData); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		return
+	}
+
+    var post models.Post
+    if err := initializers.DB.First(&post, id).Error; err != nil {
+        if err == gorm.ErrRecordNotFound {
+            c.IndentedJSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+            return
+        }
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post"})
+        return
+    }
+
+	updateResult := initializers.DB.Model(&post).Updates(updateData)
+
+	if updateResult.Error != nil {
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update post"})
+        return
+    }
+
+	var updatedPost models.Post
+    if err := initializers.DB.First(&updatedPost, id).Error; err != nil {
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve updated post"})
+        return
+    }
+
+    c.IndentedJSON(http.StatusOK, updatedPost)
 }
