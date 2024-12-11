@@ -88,3 +88,24 @@ func PostUpdates(c *gin.Context) {
 
     c.IndentedJSON(http.StatusOK, updatedPost)
 }
+
+func PostDelete(c *gin.Context) {
+	id := c.Param("id")
+
+	var post models.Post
+	if err := initializers.DB.First(&post, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+            return
+		}
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve post"})
+        return
+	}
+
+	if err := initializers.DB.Delete(&post).Error; err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{ "error": "Failed to delete post" })
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{ "message": "Data has been deleted" })
+}
