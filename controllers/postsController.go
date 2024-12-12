@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/initializers"
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/models"
@@ -39,6 +40,11 @@ func PostsCreate(c *gin.Context) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Failed to extract token claims"})
+		return
+	}
+
+	if float64(time.Now().Unix()) > claims["exp"].(float64) {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
 		return
 	}
 
