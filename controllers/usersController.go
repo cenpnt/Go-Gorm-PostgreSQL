@@ -1,15 +1,18 @@
 package controllers
 
 import (
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/initializers"
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/models"
 	"github.com/gin-gonic/gin"
-	// "gorm.io/gorm"
-	"net/http"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func UserCreate(c *gin.Context) {
+func SignUp(c *gin.Context) {
 	var user models.User
 
 	if err := c.BindJSON(&user); err != nil {
@@ -59,4 +62,40 @@ func GetUserByID(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, user)
+}
+
+func Login(c *gin.Context) {
+	var body models.User
+
+	if err := c.BindJSON(&body); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{ "error": "Invalid request data"})
+		return
+	}
+
+	var user models.User
+	if err := initializers.DB.First(&user, "email = ?", body.Email).Error; err != nil {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET_KEY")))
+
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Failed to create token"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{
+		"token": tokenString,
+	})
 }
