@@ -50,7 +50,6 @@ func PostsCreate(c *gin.Context) {
 	
 	post.UserID = uint(userID)
 	
-
 	if err := c.BindJSON(&post); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{ "error": "Invalid request data"})
 		return
