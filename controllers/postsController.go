@@ -21,12 +21,13 @@ func PostsCreate(c *gin.Context) {
 		return
 	}
 
-	result := initializers.DB.Create(&post)
-	
-	if result.Error != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{ "error": "Failed to create post"})
-		return
+	post.UserID = 2
+
+	if err := initializers.DB.Create(&post).Error; err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post"})
+        return
 	}
+
 	c.IndentedJSON(http.StatusCreated, post)
 }
 
