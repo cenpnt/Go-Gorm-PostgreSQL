@@ -1,15 +1,55 @@
 package controllers
 
 import (
+	"fmt"
+	"net/http"
+	"os"
+
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/initializers"
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/models"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 func PostsCreate(c *gin.Context) {
 	var post models.Post
+
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
+		return
+	}
+
+	// Remove Bearer string
+	tokenString = tokenString[7:]
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(os.Getenv("SECRET_KEY")), nil
+	})
+
+	if err != nil || !token.Valid {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Failed to extract token claims"})
+		return
+	}
+
+	userID, ok := claims["sub"].(float64)
+	if !ok {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
+	
+	post.UserID = uint(userID)
+	
 
 	if err := c.BindJSON(&post); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{ "error": "Invalid request data"})
