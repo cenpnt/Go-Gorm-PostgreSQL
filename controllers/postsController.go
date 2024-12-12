@@ -60,8 +60,6 @@ func PostsCreate(c *gin.Context) {
 		return
 	}
 
-	post.UserID = 2
-
 	if err := initializers.DB.Create(&post).Error; err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post"})
         return
