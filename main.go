@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/controllers"
 	"github.com/cenpnt/Go-Gorm-PostgreSQL/initializers"
+	"github.com/cenpnt/Go-Gorm-PostgreSQL/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +17,7 @@ func main() {
 
 	r.GET("/posts", controllers.GetPosts)
 	r.GET("/posts/:id", controllers.GetPostByID)
-	r.POST("/posts", controllers.PostsCreate)
+	r.POST("/posts", middleware.AuthMiddleware() ,controllers.PostsCreate)
 	r.PUT("/posts/:id", controllers.PostUpdates)
 	r.DELETE("/posts/:id", controllers.PostDelete)
 
